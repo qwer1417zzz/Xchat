@@ -1,0 +1,16 @@
+{
+  "name": "secure-chat-web",
+  "version": "1.0.0",
+  "description": "端到端加密聊天示例（前端 + WebSocket 中继）",
+  "main": "server.js",
+  "scripts": {
+    "server": "node server.js",
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.16.0"
+  }
+}
+

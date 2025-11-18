@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>第一共创 E2EE Chat</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="auth-layer" id="authLayer">
+      <div class="auth-card">
+        <h2 id="authTitle">登录账户</h2>
+        <form id="authForm" class="auth-form">
+          <label>
+            账号
+            <input id="authUsername" type="text" autocomplete="username" required />
+          </label>
+          <label>
+            密码
+            <input id="authPassword" type="password" autocomplete="current-password" required />
+          </label>
+          <button type="submit" id="authSubmit">登录</button>
+        </form>
+        <p class="auth-error" id="authError"></p>
+        <button id="toggleAuthMode" class="ghost small">切换到注册</button>
+      </div>
+    </div>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <header class="brand">
+          <div>
+            <p class="brand__eyebrow">端到端加密即时通信</p>
+            <h1>第一共创</h1>
+            <p class="brand__desc">
+              在浏览器本地生成共享密钥，所有消息仅以密文经过中继服务器，任何第三方无法解读。
+            </p>
+          </div>
+          <div class="badge" id="keyStatus">密钥未准备</div>
+        </header>
+
+        <section class="panel collapsible" id="profilePanel">
+          <header class="panel__header">
+            <h2>账号信息</h2>
+            <button class="panel__toggle" data-action="toggle-panel" aria-expanded="true">
+              收起
+            </button>
+          </header>
+          <div class="panel__body">
+            <div class="profile-info">
+              <p>ID：<span id="profileId">-</span></p>
+              <p>账号：<span id="profileName">-</span></p>
+            </div>
+            <div class="profile-actions">
+              <button id="copyIdBtn" class="ghost small">复制 ID</button>
+              <button id="logoutBtn" class="ghost small">退出登录</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel collapsible" id="friendsPanel">
+          <header class="panel__header">
+            <h2>好友</h2>
+            <button class="panel__toggle" data-action="toggle-panel" aria-expanded="true">
+              收起
+            </button>
+          </header>
+          <div class="panel__body">
+            <form id="friendRequestForm" class="form-grid">
+              <label>
+                通过 ID 添加
+                <input id="friendIdInput" type="text" placeholder="好友 ID" required />
+              </label>
+              <button type="submit">发送请求</button>
+            </form>
+            <div class="list-block">
+              <h3>好友列表</h3>
+              <div id="friendsList" class="simple-list empty">暂无好友</div>
+            </div>
+            <div class="list-block">
+              <h3>待处理</h3>
+              <div id="requestsList" class="simple-list empty">没有新的好友请求</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel panel--sessions collapsible" id="sessionsPanel">
+          <header class="panel__header">
+            <h2>会话管理</h2>
+            <button class="panel__toggle" data-action="toggle-panel" aria-expanded="true">
+              收起
+            </button>
+          </header>
+          <div class="panel__body">
+            <form id="sessionCreateForm" class="form-grid">
+              <label>
+                会话名称
+                <input id="sessionName" type="text" placeholder="密聊房间" required />
+              </label>
+              <label>
+                容量（包含房主）
+                <input id="sessionCapacity" type="number" min="2" max="12" value="2" required />
+              </label>
+              <button type="submit">创建会话</button>
+            </form>
+            <div class="form-grid connection-settings">
+              <label>
+                中继服务器
+                <input id="serverUrl" type="text" value="ws://localhost:4000" required />
+              </label>
+            </div>
+            <div class="list-block">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h3 style="margin: 0;">我的会话</h3>
+                <div style="display: flex; gap: 8px;">
+                  <button id="sessionViewMode" class="ghost small" data-mode="detailed">详细</button>
+                  <button id="sessionPagePrev" class="ghost small" style="display: none;">上一页</button>
+                  <button id="sessionPageNext" class="ghost small" style="display: none;">下一页</button>
+                </div>
+              </div>
+              <div id="sessionList" class="session-list empty">暂无会话，先创建或加入</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel collapsible" id="keyPanel">
+          <header class="panel__header">
+            <h2>共享密钥</h2>
+            <button class="panel__toggle" data-action="toggle-panel" aria-expanded="true">
+              收起
+            </button>
+          </header>
+          <div class="panel__body">
+            <form id="setupForm" class="form-grid">
+              <label>
+                共享口令
+                <div class="password-input-wrapper">
+                  <input
+                    id="passphrase"
+                    type="password"
+                    placeholder="至少 8 个字符"
+                    minlength="8"
+                    autocomplete="off"
+                    required
+                  />
+                  <button type="button" id="togglePassword" class="password-toggle" aria-label="显示/隐藏密码">
+                    <span class="eye-icon"></span>
+                  </button>
+                </div>
+              </label>
+              <button type="submit">生成密钥</button>
+            </form>
+            <p class="panel__hint">
+              房间成员共享同一口令即可得到相同密钥，消息仍只在本地加解密。
+            </p>
+          </div>
+        </section>
+
+        <section class="panel panel--log collapsible" id="logPanelWrapper">
+          <header class="panel__header">
+            <h2>运行日志</h2>
+            <div class="panel__header-actions">
+              <button id="clearLog" class="ghost small">清空</button>
+              <button class="panel__toggle" data-action="toggle-panel" aria-expanded="true">
+                收起
+              </button>
+            </div>
+          </header>
+          <div class="panel__body">
+            <div id="logPanel" class="log-panel"></div>
+          </div>
+        </section>
+      </aside>
+
+      <main class="chat-shell">
+        <header class="chat-shell__header">
+          <div>
+            <p class="eyebrow">实时会话</p>
+            <h2 id="chatRoomHeading">尚未选择会话</h2>
+            <p class="chat-meta">
+              <span id="participantLabel">成员 0 / 0</span>
+              <span id="connectionStatus" class="connection-chip offline">未连接</span>
+            </p>
+          </div>
+          <div class="chat-actions">
+            <button id="refreshSession" class="ghost small">刷新</button>
+            <button id="leaveSession" class="ghost small">离开会话</button>
+            <button id="clearHistory" class="ghost small">清空聊天</button>
+          </div>
+        </header>
+
+        <section class="chat-thread">
+          <div id="chatHistory" class="chat-history empty">
+            <div class="empty-state">
+              <h3>等待选择</h3>
+              <p>请先登录、创建/加入一个会话，再生成共享密钥即可开始聊天。</p>
+            </div>
+          </div>
+        </section>
+
+        <form id="chatForm" class="composer">
+          <textarea
+            id="chatInput"
+            rows="2"
+            placeholder="输入消息，回车发送"
+            required
+          ></textarea>
+          <button type="submit">发送</button>
+        </form>
+      </main>
+    </div>
+
+    <template id="messageTemplate">
+      <article class="bubble">
+        <header>
+          <span class="bubble__author"></span>
+          <span class="bubble__time"></span>
+          <button class="bubble__delete" data-action="delete-message" style="display: none;">撤回</button>
+        </header>
+        <p class="bubble__body"></p>
+      </article>
+    </template>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>
+
